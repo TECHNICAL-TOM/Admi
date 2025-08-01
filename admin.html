@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Reward Task System</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #598cff;
+            --secondary-color: #0040ff;
+            --dark-color: #333;
+            --light-color: #f8f9fa;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .sidebar {
+            height: 100vh;
+            background: linear-gradient(180deg, #1a2a6c, #0040ff);
+            color: white;
+            position: fixed;
+            width: 250px;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            border-radius: 5px;
+            padding: 10px 15px;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+        }
+        
+        .stat-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .stat-card .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .stat-card .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .table th {
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+        
+        .badge-success {
+            background-color: var(--success-color);
+        }
+        
+        .badge-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .badge-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #3a7bff;
+            border-color: #3a7bff;
+        }
+        
+        .nav-tabs .nav-link.active {
+            font-weight: 600;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box i {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #6c757d;
+        }
+        
+        .search-box input {
+            padding-left: 35px;
+            border-radius: 20px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .withdrawal-pending {
+            background-color: #fff3cd;
+        }
+        
+        .withdrawal-approved {
+            background-color: #d4edda;
+        }
+        
+        .withdrawal-rejected {
+            background-color: #f8d7da;
+        }
+        
+        .settings-card {
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .settings-card .card-header {
+            background-color: #fff3cd;
+        }
+        
+        #login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo img {
+            max-width: 150px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: -250px;
+            }
+            
+            .sidebar.active {
+                margin-left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .main-content.active {
+                margin-left: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Container (Initially Visible) -->
+    <div id="login-container" class="d-block">
+        <div class="logo">
+            <h3>Admin Panel Login</h3>
+        </div>
+        <div class="mb-3">
+            <label for="login-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="login-email" placeholder="admin@example.com">
+        </div>
+        <div class="mb-3">
+            <label for="login-password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="login-password" placeholder="••••••••">
+        </div>
+        <button id="login-btn" class="btn btn-primary w-100">Login</button>
+        <div id="login-error" class="text-danger mt-2 text-center"></div>
+    </div>
+
+    <!-- Admin Panel (Initially Hidden) -->
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar d-none" id="sidebar">
+            <div class="p-3">
+                <h4 class="text-center mb-4">Reward Task Admin</h4>
+                <hr>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" data-section="dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="users">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="withdrawals">
+                        <i class="fas fa-money-bill-wave"></i> Withdrawals
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="transactions">
+                        <i class="fas fa-exchange-alt"></i> Transactions
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="referrals">
+                        <i class="fas fa-user-plus"></i> Referrals
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </li>
+                <li class="nav-item mt-3">
+                    <a class="nav-link" href="#" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content d-none" id="main-content">
+            <!-- Dashboard Section -->
+            <div class="section-content" id="dashboard-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Dashboard</h2>
+                    <div class="d-flex">
+                        <div class="search-box me-2">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" placeholder="Search...">
+                        </div>
+                        <button class="btn btn-outline-secondary" id="sidebar-toggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="stat-value" id="total-users">0</div>
+                                <div class="stat-label">Total Users</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="stat-value" id="active-today">0</div>
+                                <div class="stat-label">Active Today</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="stat-value">$<span id="total-earnings">0.00</span></div>
+                                <div class="stat-label">Total Earnings</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="stat-value">$<span id="total-withdrawn">0.00</span></div>
+                                <div class="stat-label">Total Withdrawn</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Recent Users</span>
+                                <a href="#" class="btn btn-sm btn-outline-primary" data-section="users">View All</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>Phone</th>
+                                                <th>Balance</th>
+                                                <th>Joined</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-users-table">
+                                            <!-- Recent users will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Pending Withdrawals</span>
+                                <a href="#" class="btn btn-sm btn-outline-primary" data-section="withdrawals">View All</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Amount</th>
+                                                <th>Method</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pending-withdrawals-table">
+                                            <!-- Pending withdrawals will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Section -->
+            <div class="section-content d-none" id="users-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>User Management</h2>
+                    <div class="d-flex">
+                        <div class="search-box me-2">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="user-search" placeholder="Search users...">
+                        </div>
+                        <button class="btn btn-outline-secondary" id="sidebar-toggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-tab="all-users">All Users</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="active-users">Active</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="banned-users">Banned</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Balance</th>
+                                        <th>Earnings</th>
+                                        <th>Referrals</th>
+                                        <th>Joined</th>
+                                        <th>Last Active</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table">
+                                    <!-- Users will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-3">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Withdrawals Section -->
+            <div class="section-content d-none" id="withdrawals-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Withdrawal Requests</h2>
+                    <div class="d-flex">
+                        <div class="search-box me-2">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="withdrawal-search" placeholder="Search withdrawals...">
+                        </div>
+                        <button class="btn btn-outline-secondary" id="sidebar-toggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-tab="pending-withdrawals">Pending</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="approved-withdrawals">Approved</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-tab="rejected-withdrawals">Rejected</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Details</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="withdrawals-table">
+                                    <!-- Withdrawals will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-3">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transactions Section -->
+            <div class="section-content d-none" id="transactions-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Transaction History</h2>
+                    <div class="d-flex">
+                        <div class="search-box me-2">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="transaction-search" placeholder="Search transactions...">
+                        </div>
+                        <button class="btn btn-outline-secondary" id="sidebar-toggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="earnings">Earnings</button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="withdrawals">Withdrawals</button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="bonuses">Bonuses</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="date" class="form-control" id="transaction-date">
+                                    <button class="btn btn-outline-secondary" type="button">Filter</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table">
+                                    <!-- Transactions will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-3">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Referrals Section -->
+            <div class="section-content d-none" id="referrals-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Referral System</h2>
+                    <div class="d-flex">
+                        <div class="search-box me-2">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="referral-search" placeholder="Search referrals...">
+                        </div>
+                        <button class="btn btn-outline-secondary" id="sidebar-toggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Referral Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="mb-3">
+                                            <h6>Total Referrals</h6>
+                                            <h3 id="total-referrals">0</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mb-3">
+                                            <h6>Referral Earnings</h6>
+                                            <h3>$<span id="total-referral-earnings">0.00</span></h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="referral-rate" class="form-label">Referral Bonus Rate</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="referral-rate" value="10">
+                                        <span class="input-group-text">%</span>
+                                        <button class="btn btn-primary" id="update-referral-rate">Update</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Top Referrers</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Referrals</th>
+                                                <th>Earnings</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="top-referrers-table">
+                                            <!-- Top referrers will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">All Referral Relationships</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Referrer</th>
+                                        <th>Referred User</th>
+                                        <th>Date</th>
+                                        <th>Bonus Earned</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="referrals-table">
+                                    <!-- Referrals will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-3">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Section -->
+            <div class="section-content d-none" id="settings-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>System Settings</h2>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-secondary" id="sidebar-toggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card settings-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">General Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="app-name" class="form-label">App Name</label>
+                                    <input type="text" class="form-control" id="app-name" value="Reward Task App">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="app-logo" class="form-label">App Logo</label>
+                                    <input type="file" class="form-control" id="app-logo">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="app-description" class="form-label">App Description</label>
+                                    <textarea class="form-control" id="app-description" rows="3">Earn money by completing simple tasks!</textarea>
+                                </div>
+                                <button class="btn btn-primary" id="save-general-settings">Save Settings</button>
+                            </div>
+                        </div>
+                        
+                        <div class="card settings-card mt-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Ad Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="ad-provider" class="form-label">Ad Provider</label>
+                                    <select class="form-select" id="ad-provider">
+                                        <option value="monetag">Monetag</option>
+                                        <option value="admob">AdMob</option>
+                                        <option value="facebook">Facebook Audience Network</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="ad-zone-id" class="form-label">Ad Zone ID</label>
+                                    <input type="text" class="form-control" id="ad-zone-id" value="8951940">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="ad-sdk" class="form-label">Ad SDK</label>
+                                    <input type="text" class="form-control" id="ad-sdk" value="show_8951940">
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="enable-ads" checked>
+                                    <label class="form-check-label" for="enable-ads">Enable Ads</label>
+                                </div>
+                                <button class="btn btn-primary" id="save-ad-settings">Save Settings</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card settings-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Reward Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="reward-per-task" class="form-label">Reward per Task</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" step="0.01" class="form-control" id="reward-per-task" value="0.10">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="daily-task-limit" class="form-label">Daily Task Limit</label>
+                                    <input type="number" class="form-control" id="daily-task-limit" value="10">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="min-withdrawal" class="form-label">Minimum Withdrawal</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" step="0.01" class="form-control" id="min-withdrawal" value="100.00">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="withdrawal-methods" class="form-label">Withdrawal Methods</label>
+                                    <select class="form-select" id="withdrawal-methods" multiple>
+                                        <option value="Bkash" selected>Bkash</option>
+                                        <option value="Nagad" selected>Nagad</option>
+                                        <option value="PayPal" selected>PayPal</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" id="save-reward-settings">Save Settings</button>
+                            </div>
+                        </div>
+                        
+                        <div class="card settings-card mt-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Telegram Integration</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="telegram-bot-token" class="form-label">Bot Token</label>
+                                    <input type="text" class="form-control" id="telegram-bot-token" value="7576989138:AAE_jSrqoGiY9zj_7JdflD0VdLtwdodM4pI">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="telegram-chat-id" class="form-label">Chat ID</label>
+                                    <input type="text" class="form-control" id="telegram-chat-id" value="1647354354">
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="enable-withdrawal-notifications" checked>
+                                    <label class="form-check-label" for="enable-withdrawal-notifications">Enable Withdrawal Notifications</label>
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="enable-new-user-notifications" checked>
+                                    <label class="form-check-label" for="enable-new-user-notifications">Enable New User Notifications</label>
+                                </div>
+                                <button class="btn btn-primary" id="save-telegram-settings">Save Settings</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Edit Modal -->
+    <div class="modal fade" id="userEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit-user-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="edit-user-name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-user-phone" class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="edit-user-phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-user-balance" class="form-label">Balance</label>
+                        <input type="number" step="0.01" class="form-control" id="edit-user-balance">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-user-status" class="form-label">Status</label>
+                        <select class="form-select" id="edit-user-status">
+                            <option value="active">Active</option>
+                            <option value="banned">Banned</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="save-user-changes">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Action Modal -->
+    <div class="modal fade" id="withdrawalActionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Process Withdrawal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="withdrawal-action" class="form-label">Action</label>
+                        <select class="form-select" id="withdrawal-action">
+                            <option value="approve">Approve</option>
+                            <option value="reject">Reject</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="withdrawal-notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="withdrawal-notes" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3" id="transaction-proof-container" style="display: none;">
+                        <label for="transaction-proof" class="form-label">Transaction Proof (Screenshot)</label>
+                        <input type="file" class="form-control" id="transaction-proof">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="process-withdrawal-action">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyA1oQDRiUEs1t6jbKATLJS99nvnnXT7o",
+            authDomain: "sexinlife-66926.firebaseapp.com",
+            databaseURL: "https://sexinlife-66926-default-rtdb.firebaseio.com",
+            projectId: "sexinlife-66926",
+            storageBucket: "sexinlife-66926.appspot.com",
+            messagingSenderId: "1082487490310",
+            appId: "1:1082487490310:web:90517d29a852895abfc087",
+            measurementId: "G-24X67RQQ18"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+        
+        // DOM elements
+        const loginContainer = document.getElementById('login-container');
+        const loginBtn = document.getElementById('login-btn');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const loginError = document.getElementById('login-error');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const logoutBtn = document.getElementById('logout-btn');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        
+        // Admin credentials (in production, use Firebase Authentication with proper admin users)
+        const ADMIN_EMAIL = "admin@rewardtask.com";
+        const ADMIN_PASSWORD = "admin123";
+        
+        // Current user data
+        let currentUser = null;
+        let currentSection = 'dashboard';
+        
+        // Login function
+        loginBtn.addEventListener('click', () => {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            
+            if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+                // Successful login
+                loginContainer.classList.add('d-none');
+                sidebar.classList.remove('d-none');
+                mainContent.classList.remove('d-none');
+                
+                // Initialize the admin panel
+                initAdminPanel();
+            } else {
+                loginError.textContent = "Invalid email or password";
+            }
+        });
+        
+        // Logout function
+        logoutBtn.addEventListener('click', () => {
+            // Hide admin panel and show login
+            sidebar.classList.add('d-none');
+            mainContent.classList.add('d-none');
+            loginContainer.classList.remove('d-none');
+            
+            // Clear login form
+            loginEmail.value = "";
+            loginPassword.value = "";
+            loginError.textContent = "";
+        });
+        
+        // Sidebar toggle for mobile
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            mainContent.classList.toggle('active');
+        });
+        
+        // Section navigation
+        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = link.getAttribute('data-section');
+                currentSection = section;
+                
+                // Hide all sections
+                document.querySelectorAll('.section-content').forEach(sec => {
+                    sec.classList.add('d-none');
+                });
+                
+                // Show selected section
+                document.getElementById(`${section}-section`).classList.remove('d-none');
+                
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(navLink => {
+                    navLink.classList.remove('active');
+                });
+                link.classList.add('active');
+                
+                // Load section data
+                loadSectionData(section);
+            });
+        });
+        
+        // Initialize the admin panel
+        function initAdminPanel() {
+            // Load dashboard data by default
+            loadSectionData('dashboard');
+            
+            // Initialize modals
+            const userEditModal = new bootstrap.Modal(document.getElementById('userEditModal'));
+            const withdrawalActionModal = new bootstrap.Modal(document.getElementById('withdrawalActionModal'));
+            
+            // Set up event listeners for buttons and forms
+            setupEventListeners();
+            
+            // Listen for real-time updates
+            setupRealtimeListeners();
+        }
+        
+        // Set up real-time listeners
+        function setupRealtimeListeners() {
+            // Listen for new users
+            database.ref('users').limitToLast(5).on('value', (snapshot) => {
+                if (currentSection === 'dashboard' || currentSection === 'users') {
+                    loadSectionData(currentSection);
+                }
+            });
+            
+            // Listen for new withdrawals
+            database.ref('withdrawals').orderByChild('status').equalTo('pending').on('value', (snapshot) => {
+                if (currentSection === 'dashboard' || currentSection === 'withdrawals') {
+                    loadSectionData(currentSection);
+                }
+            });
+            
+            // Listen for new transactions
+            database.ref('transactions').limitToLast(10).on('value', (snapshot) => {
+                if (currentSection === 'transactions') {
+                    loadSectionData(currentSection);
+                }
+            });
+        }
+        
+        // Load data for a specific section
+        function loadSectionData(section) {
+            switch(section) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'users':
+                    loadUsersData();
+                    break;
+                case 'withdrawals':
+                    loadWithdrawalsData();
+                    break;
+                case 'transactions':
+                    loadTransactionsData();
+                    break;
+                case 'referrals':
+                    loadReferralsData();
+                    break;
+                case 'settings':
+                    loadSettingsData();
+                    break;
+            }
+        }
+        
+        // Load dashboard data
+        function loadDashboardData() {
+            // Load user statistics
+            database.ref('users').once('value').then((snapshot) => {
+                const users = [];
+                let totalEarnings = 0;
+                let totalWithdrawn = 0;
+                let activeToday = 0;
+                
+                snapshot.forEach((childSnapshot) => {
+                    const user = childSnapshot.val();
+                    users.push(user);
+                    totalEarnings += user.points || 0;
+                    
+                    // Check if user was active today
+                    if (user.lastActive) {
+                        const lastActiveDate = new Date(user.lastActive);
+                        const today = new Date();
+                        if (lastActiveDate.toDateString() === today.toDateString()) {
+                            activeToday++;
+                        }
+                    }
+                });
+                
+                // Update stats
+                document.getElementById('total-users').textContent = users.length;
+                document.getElementById('active-today').textContent = activeToday;
+                document.getElementById('total-earnings').textContent = totalEarnings.toFixed(2);
+                
+                // Load recent users (last 5 registered)
+                const recentUsersTable = document.getElementById('recent-users-table');
+                recentUsersTable.innerHTML = '';
+                
+                users.slice(-5).reverse().forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.id || 'N/A'}</td>
+                        <td>${user.name || 'N/A'}</td>
+                        <td>${user.number || 'N/A'}</td>
+                        <td>$${(user.balance || 0).toFixed(2)}</td>
+                        <td>${user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'N/A'}</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                    `;
+                    recentUsersTable.appendChild(row);
+                });
+            });
+            
+            // Load pending withdrawals
+            database.ref('withdrawals').orderByChild('status').equalTo('pending').limitToLast(3).once('value').then((snapshot) => {
+                const pendingWithdrawalsTable = document.getElementById('pending-withdrawals-table');
+                pendingWithdrawalsTable.innerHTML = '';
+                
+                snapshot.forEach((childSnapshot) => {
+                    const withdrawal = childSnapshot.val();
+                    const row = document.createElement('tr');
+                    row.className = 'withdrawal-pending';
+                    row.innerHTML = `
+                        <td>${withdrawal.userName || 'N/A'}</td>
+                        <td>$${withdrawal.amount.toFixed(2)}</td>
+                        <td>${withdrawal.method || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success process-withdrawal" data-id="${childSnapshot.key}">Approve</button>
+                            <button class="btn btn-sm btn-danger reject-withdrawal" data-id="${childSnapshot.key}">Reject</button>
+                        </td>
+                    `;
+                    pendingWithdrawalsTable.appendChild(row);
+                });
+                
+                // Add event listeners to buttons
+                document.querySelectorAll('.process-withdrawal').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const withdrawalId = e.target.getAttribute('data-id');
+                        processWithdrawal(withdrawalId, 'approve');
+                    });
+                });
+                
+                document.querySelectorAll('.reject-withdrawal').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const withdrawalId = e.target.getAttribute('data-id');
+                        processWithdrawal(withdrawalId, 'reject');
+                    });
+                });
+            });
+            
+            // Load total withdrawn amount
+            database.ref('withdrawals').orderByChild('status').equalTo('approved').once('value').then((snapshot) => {
+                let totalWithdrawn = 0;
+                snapshot.forEach((childSnapshot) => {
+                    const withdrawal = childSnapshot.val();
+                    totalWithdrawn += withdrawal.amount || 0;
+                });
+                document.getElementById('total-withdrawn').textContent = totalWithdrawn.toFixed(2);
+            });
+        }
+        
+        // Load users data
+        function loadUsersData() {
+            database.ref('users').once('value').then((snapshot) => {
+                const usersTable = document.getElementById('users-table');
+                usersTable.innerHTML = '';
+                
+                snapshot.forEach((childSnapshot) => {
+                    const user = childSnapshot.val();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${childSnapshot.key}</td>
+                        <td>${user.name || 'N/A'}</td>
+                        <td>${user.number || 'N/A'}</td>
+                        <td>$${(user.balance || 0).toFixed(2)}</td>
+                        <td>$${(user.points || 0).toFixed(2)}</td>
+                        <td>${user.totalReferrals || 0}</td>
+                        <td>${user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'N/A'}</td>
+                        <td>${user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-user" data-id="${childSnapshot.key}">Edit</button>
+                            <button class="btn btn-sm btn-danger ban-user" data-id="${childSnapshot.key}">Ban</button>
+                        </td>
+                    `;
+                    usersTable.appendChild(row);
+                });
+                
+                // Add event listeners to edit buttons
+                document.querySelectorAll('.edit-user').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-id');
+                        editUser(userId);
+                    });
+                });
+            });
+        }
+        
+        // Edit user function
+        function editUser(userId) {
+            database.ref('users/' + userId).once('value').then((snapshot) => {
+                const user = snapshot.val();
+                
+                // Populate the edit modal
+                document.getElementById('edit-user-name').value = user.name || '';
+                document.getElementById('edit-user-phone').value = user.number || '';
+                document.getElementById('edit-user-balance').value = user.balance || 0;
+                
+                // Show the modal
+                const userEditModal = new bootstrap.Modal(document.getElementById('userEditModal'));
+                userEditModal.show();
+                
+                // Set up save button
+                document.getElementById('save-user-changes').onclick = () => {
+                    const updatedUser = {
+                        name: document.getElementById('edit-user-name').value,
+                        number: document.getElementById('edit-user-phone').value,
+                        balance: parseFloat(document.getElementById('edit-user-balance').value),
+                        status: document.getElementById('edit-user-status').value
+                    };
+                    
+                    // Update user in Firebase
+                    database.ref('users/' + userId).update(updatedUser).then(() => {
+                        alert('User updated successfully!');
+                        userEditModal.hide();
+                        loadSectionData(currentSection);
+                    });
+                };
+            });
+        }
+        
+        // Load withdrawals data
+        function loadWithdrawalsData() {
+            const activeTab = document.querySelector('.nav-tabs .nav-link.active').getAttribute('data-tab');
+            let statusFilter = 'pending';
+            
+            if (activeTab === 'approved-withdrawals') {
+                statusFilter = 'approved';
+            } else if (activeTab === 'rejected-withdrawals') {
+                statusFilter = 'rejected';
+            }
+            
+            database.ref('withdrawals').orderByChild('status').equalTo(statusFilter).once('value').then((snapshot) => {
+                const withdrawalsTable = document.getElementById('withdrawals-table');
+                withdrawalsTable.innerHTML = '';
+                
+                snapshot.forEach((childSnapshot) => {
+                    const withdrawal = childSnapshot.val();
+                    const row = document.createElement('tr');
+                    
+                    if (withdrawal.status === 'pending') {
+                        row.className = 'withdrawal-pending';
+                    } else if (withdrawal.status === 'approved') {
+                        row.className = 'withdrawal-approved';
+                    } else {
+                        row.className = 'withdrawal-rejected';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${childSnapshot.key}</td>
+                        <td>${withdrawal.userName} (${withdrawal.userId})</td>
+                        <td>$${withdrawal.amount.toFixed(2)}</td>
+                        <td>${withdrawal.method}</td>
+                        <td>${withdrawal.details}</td>
+                        <td>${new Date(withdrawal.date).toLocaleDateString()}</td>
+                        <td><span class="badge bg-${withdrawal.status === 'approved' ? 'success' : withdrawal.status === 'rejected' ? 'danger' : 'warning'}">${withdrawal.status}</span></td>
+                        <td>
+                            ${withdrawal.status === 'pending' ? 
+                                `<button class="btn btn-sm btn-success process-withdrawal" data-id="${childSnapshot.key}">Process</button>` : 
+                                `<button class="btn btn-sm btn-info view-withdrawal" data-id="${childSnapshot.key}">View</button>`}
+                        </td>
+                    `;
+                    withdrawalsTable.appendChild(row);
+                });
+                
+                // Add event listeners to buttons
+                document.querySelectorAll('.process-withdrawal').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const withdrawalId = e.target.getAttribute('data-id');
+                        showWithdrawalActionModal(withdrawalId);
+                    });
+                });
+            });
+            
+            // Tab switching
+            document.querySelectorAll('.nav-tabs .nav-link').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-tabs .nav-link').forEach(t => {
+                        t.classList.remove('active');
+                    });
+                    tab.classList.add('active');
+                    loadWithdrawalsData();
+                });
+            });
+        }
+        
+        // Show withdrawal action modal
+        function showWithdrawalActionModal(withdrawalId) {
+            database.ref('withdrawals/' + withdrawalId).once('value').then((snapshot) => {
+                const withdrawal = snapshot.val();
+                
+                // Show the modal
+                const withdrawalActionModal = new bootstrap.Modal(document.getElementById('withdrawalActionModal'));
+                withdrawalActionModal.show();
+                
+                // Show/hide transaction proof based on action
+                document.getElementById('withdrawal-action').addEventListener('change', function() {
+                    if (this.value === 'approve') {
+                        document.getElementById('transaction-proof-container').style.display = 'block';
+                    } else {
+                        document.getElementById('transaction-proof-container').style.display = 'none';
+                    }
+                });
+                
+                // Set up process button
+                document.getElementById('process-withdrawal-action').onclick = () => {
+                    const action = document.getElementById('withdrawal-action').value;
+                    const notes = document.getElementById('withdrawal-notes').value;
+                    
+                    processWithdrawal(withdrawalId, action, notes);
+                    withdrawalActionModal.hide();
+                };
+            });
+        }
+        
+        // Process withdrawal
+        function processWithdrawal(withdrawalId, action, notes = '') {
+            database.ref('withdrawals/' + withdrawalId).once('value').then((snapshot) => {
+                const withdrawal = snapshot.val();
+                const updates = {
+                    status: action,
+                    processedAt: new Date().toISOString(),
+                    processedBy: 'admin',
+                    notes: notes
+                };
+                
+                // Update withdrawal status
+                database.ref('withdrawals/' + withdrawalId).update(updates).then(() => {
+                    if (action === 'approve') {
+                        // If approved, we might want to update user balance or other records
+                        alert('Withdrawal approved successfully!');
+                    } else {
+                        // If rejected, return funds to user balance
+                        database.ref('users/' + withdrawal.userId).transaction((user) => {
+                            if (user) {
+                                user.balance = (user.balance || 0) + withdrawal.amount;
+                            }
+                            return user;
+                        }).then(() => {
+                            alert('Withdrawal rejected and funds returned to user balance.');
+                        });
+                    }
+                    
+                    // Reload current section
+                    loadSectionData(currentSection);
+                });
+            });
+        }
+        
+        // Load transactions data
+        function loadTransactionsData() {
+            const activeFilter = document.querySelector('.btn-group .btn.active').getAttribute('data-filter');
+            
+            database.ref('transactions').once('value').then((snapshot) => {
+                const transactionsTable = document.getElementById('transactions-table');
+                transactionsTable.innerHTML = '';
+                
+                snapshot.forEach((childSnapshot) => {
+                    const transaction = childSnapshot.val();
+                    
+                    // Apply filter
+                    if (activeFilter === 'all' || 
+                        (activeFilter === 'earnings' && transaction.amount > 0) ||
+                        (activeFilter === 'withdrawals' && transaction.amount < 0) ||
+                        (activeFilter === 'bonuses' && transaction.type === 'referral_bonus')) {
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${childSnapshot.key}</td>
+                            <td>${transaction.userName} (${transaction.userId})</td>
+                            <td>${transaction.type === 'task_reward' ? 'Task Reward' : 
+                                 transaction.type === 'withdrawal' ? 'Withdrawal' : 
+                                 transaction.type === 'referral_bonus' ? 'Referral Bonus' : 
+                                 'Other'}</td>
+                            <td>${transaction.amount > 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}</td>
+                            <td>${new Date(transaction.date).toLocaleString()}</td>
+                            <td>${transaction.type === 'task_reward' ? 'Completed task' : 
+                                 transaction.type === 'withdrawal' ? 'Withdrawal request' : 
+                                 transaction.type === 'referral_bonus' ? 'Referral bonus' : 
+                                 'Other transaction'}</td>
+                        `;
+                        transactionsTable.appendChild(row);
+                    }
+                });
+            });
+            
+            // Filter switching
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.btn-group .btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    btn.classList.add('active');
+                    loadTransactionsData();
+                });
+            });
+        }
+        
+        // Load referrals data
+        function loadReferralsData() {
+            // Load referral statistics
+            database.ref('users').once('value').then((snapshot) => {
+                let totalReferrals = 0;
+                let totalReferralEarnings = 0;
+                const referrers = [];
+                
+                snapshot.forEach((childSnapshot) => {
+                    const user = childSnapshot.val();
+                    const referrals = user.totalReferrals || 0;
+                    const referralEarnings = user.referralEarnings || 0;
+                    
+                    totalReferrals += referrals;
+                    totalReferralEarnings += referralEarnings;
+                    
+                    if (referrals > 0) {
+                        referrers.push({
+                            name: user.name,
+                            referrals: referrals,
+                            earnings: referralEarnings
+                        });
+                    }
+                });
+                
+                document.getElementById('total-referrals').textContent = totalReferrals;
+                document.getElementById('total-referral-earnings').textContent = totalReferralEarnings.toFixed(2);
+                
+                // Sort referrers by most referrals
+                referrers.sort((a, b) => b.referrals - a.referrals);
+                
+                // Load top referrers
+                const topReferrersTable = document.getElementById('top-referrers-table');
+                topReferrersTable.innerHTML = '';
+                
+                referrers.slice(0, 5).forEach(referrer => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${referrer.name || 'N/A'}</td>
+                        <td>${referrer.referrals}</td>
+                        <td>$${referrer.earnings.toFixed(2)}</td>
+                    `;
+                    topReferrersTable.appendChild(row);
+                });
+            });
+            
+            // Load all referral relationships (this would need a separate structure in Firebase)
+            // For now we'll just show a message
+            const referralsTable = document.getElementById('referrals-table');
+            referralsTable.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center">Referral relationships would be shown here if tracked in Firebase</td>
+                </tr>
+            `;
+        }
+        
+        // Load settings data
+        function loadSettingsData() {
+            // In a real app, you would load current settings from Firebase
+            // This is just for demonstration
+        }
+        
+        // Set up event listeners for buttons and forms
+        function setupEventListeners() {
+            // Save settings buttons
+            document.getElementById('save-general-settings').addEventListener('click', () => {
+                const appName = document.getElementById('app-name').value;
+                const appDescription = document.getElementById('app-description').value;
+                
+                // In a real app, you would save these to Firebase
+                database.ref('settings/general').set({
+                    appName: appName,
+                    appDescription: appDescription
+                }).then(() => {
+                    alert('General settings saved!');
+                });
+            });
+            
+            document.getElementById('save-ad-settings').addEventListener('click', () => {
+                const adProvider = document.getElementById('ad-provider').value;
+                const adZoneId = document.getElementById('ad-zone-id').value;
+                const adSdk = document.getElementById('ad-sdk').value;
+                const enableAds = document.getElementById('enable-ads').checked;
+                
+                database.ref('settings/ads').set({
+                    provider: adProvider,
+                    zoneId: adZoneId,
+                    sdk: adSdk,
+                    enabled: enableAds
+                }).then(() => {
+                    alert('Ad settings saved!');
+                });
+            });
+            
+            document.getElementById('save-reward-settings').addEventListener('click', () => {
+                const rewardPerTask = parseFloat(document.getElementById('reward-per-task').value);
+                const dailyTaskLimit = parseInt(document.getElementById('daily-task-limit').value);
+                const minWithdrawal = parseFloat(document.getElementById('min-withdrawal').value);
+                
+                // Get selected withdrawal methods
+                const selectedMethods = [];
+                const options = document.getElementById('withdrawal-methods').options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) {
+                        selectedMethods.push(options[i].value);
+                    }
+                }
+                
+                database.ref('settings/rewards').set({
+                    rewardPerTask: rewardPerTask,
+                    dailyTaskLimit: dailyTaskLimit,
+                    minWithdrawal: minWithdrawal,
+                    withdrawalMethods: selectedMethods
+                }).then(() => {
+                    alert('Reward settings saved!');
+                });
+            });
+            
+            document.getElementById('save-telegram-settings').addEventListener('click', () => {
+                const botToken = document.getElementById('telegram-bot-token').value;
+                const chatId = document.getElementById('telegram-chat-id').value;
+                const enableWithdrawalNotifications = document.getElementById('enable-withdrawal-notifications').checked;
+                const enableNewUserNotifications = document.getElementById('enable-new-user-notifications').checked;
+                
+                database.ref('settings/telegram').set({
+                    botToken: botToken,
+                    chatId: chatId,
+                    withdrawalNotifications: enableWithdrawalNotifications,
+                    newUserNotifications: enableNewUserNotifications
+                }).then(() => {
+                    alert('Telegram settings saved!');
+                });
+            });
+            
+            // Update referral rate
+            document.getElementById('update-referral-rate').addEventListener('click', () => {
+                const newRate = document.getElementById('referral-rate').value;
+                
+                database.ref('settings/referralRate').set(parseInt(newRate)).then(() => {
+                    alert(`Referral bonus rate updated to ${newRate}%`);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
